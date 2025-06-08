@@ -1,0 +1,1062 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>云冈石窟语音讲解导览</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;600;700&display=swap');
+        
+        body {
+            font-family: 'Noto Serif SC', serif;
+            scroll-behavior: smooth;
+        }
+        
+        html {
+            scroll-behavior: smooth;
+        }
+        
+        .scroll-animation {
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.8s ease, transform 0.8s ease;
+        }
+        
+        .scroll-animation.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .audio-player {
+            border-radius: 10px;
+            background-color: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .play-btn {
+            transition: all 0.3s ease;
+        }
+        
+        .play-btn:hover {
+            background-color: #d97706;
+            transform: scale(1.05);
+        }
+        
+        .nav-link {
+            position: relative;
+            transition: all 0.3s ease;
+        }
+        
+        .nav-link::after {
+            content: '';
+            position: absolute;
+            bottom: -3px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background-color: #d97706;
+            transition: width 0.3s ease;
+        }
+        
+        .nav-link:hover::after {
+            width: 100%;
+        }
+        
+        .nav-link.active {
+            color: #d97706;
+        }
+        
+        .nav-link.active::after {
+            width: 100%;
+        }
+        
+        .img-shadow {
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        }
+        
+        .timeline-dot {
+            transition: all 0.3s ease;
+        }
+        
+        .timeline-dot:hover {
+            transform: scale(1.3);
+        }
+        
+        .progress-container {
+            position: relative;
+            cursor: pointer;
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background-color: #f59e0b;
+            border-radius: 9999px;
+            transition: width 0.1s linear;
+        }
+        
+        .progress-handle {
+            position: absolute;
+            top: 50%;
+            width: 12px;
+            height: 12px;
+            background-color: #d97706;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            cursor: pointer;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.2);
+            z-index: 10;
+            display: none;
+        }
+        
+        .progress-container:hover .progress-handle {
+            display: block;
+        }
+        
+        @media (max-width: 640px) {
+            .mobile-nav-menu {
+                transform: translateX(-100%);
+                transition: transform 0.3s ease;
+            }
+            
+            .mobile-nav-menu.active {
+                transform: translateX(0);
+            }
+            
+            .progress-handle {
+                width: 16px;
+                height: 16px;
+                display: block;
+            }
+        }
+        
+        .hero-gradient {
+            background: linear-gradient(135deg, rgba(237, 137, 54, 0.8), rgba(180, 83, 9, 0.8));
+        }
+        
+        .section-heading {
+            position: relative;
+            display: inline-block;
+        }
+        
+        .section-heading::after {
+            content: "";
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 80px;
+            height: 4px;
+            background-color: #d97706;
+            border-radius: 2px;
+        }
+    </style>
+</head>
+<body class="bg-stone-100">
+    <!-- 顶部导航栏 -->
+    <nav class="fixed w-full bg-white shadow-md z-50">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center">
+                <img src="https://n.sinaimg.cn/sinakd20118/598/w840h558/20200531/4c63-iumkapv7033293.jpg" alt="云冈石窟" class="h-10 mr-3 rounded-md">
+                <h1 class="text-xl font-bold text-amber-700">云冈石窟语音导览</h1>
+            </div>
+            
+            <!-- 桌面导航菜单 -->
+            <div class="hidden md:flex space-x-6">
+                <a href="#home" class="nav-link font-medium text-gray-700 hover:text-amber-600 active">首页</a>
+                <a href="#damyao" class="nav-link font-medium text-gray-700 hover:text-amber-600">昙曜五窟</a>
+                <a href="#shuangku" class="nav-link font-medium text-gray-700 hover:text-amber-600">第5-6窟双窟</a>
+                <a href="#wuhua" class="nav-link font-medium text-gray-700 hover:text-amber-600">第9-13窟五华洞</a>
+                <a href="#lingyan" class="nav-link font-medium text-gray-700 hover:text-amber-600">第3窟灵岩寺</a>
+            </div>
+            
+            <!-- 移动端菜单按钮 -->
+            <div class="md:hidden">
+                <button id="menuBtn" class="text-gray-700 hover:text-amber-600 focus:outline-none">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+        
+        <!-- 移动端导航菜单 -->
+        <div id="mobileMenu" class="mobile-nav-menu fixed left-0 top-16 w-64 h-screen bg-white shadow-lg z-50 transform -translate-x-full transition-transform">
+            <div class="flex flex-col space-y-4 p-4">
+                <a href="#home" class="nav-link font-medium text-gray-700 hover:text-amber-600 py-2">首页</a>
+                <a href="#damyao" class="nav-link font-medium text-gray-700 hover:text-amber-600 py-2">昙曜五窟</a>
+                <a href="#shuangku" class="nav-link font-medium text-gray-700 hover:text-amber-600 py-2">第5-6窟双窟</a>
+                <a href="#wuhua" class="nav-link font-medium text-gray-700 hover:text-amber-600 py-2">第9-13窟五华洞</a>
+                <a href="#lingyan" class="nav-link font-medium text-gray-700 hover:text-amber-600 py-2">第3窟灵岩寺</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 主要内容区域 -->
+    <div class="container mx-auto px-4 pt-20 pb-10">
+        <!-- 首页/总览 -->
+        <section id="home" class="py-10">
+            <div class="relative rounded-xl overflow-hidden h-96 mb-12">
+                <img src="https://n.sinaimg.cn/sinacn21/266/w1600h1066/20180903/b2c8-hiqtcan6450207.jpg" alt="云冈石窟全景" class="w-full h-full object-cover">
+                <div class="absolute inset-0 hero-gradient"></div>
+                <div class="absolute inset-0 flex flex-col justify-center items-center text-white p-4">
+                    <h1 class="text-4xl md:text-5xl font-bold mb-4 text-center">云冈石窟语音导览</h1>
+                    <p class="text-lg md:text-xl text-center max-w-2xl">聆听历史的声音，感受千年石窟的艺术魅力</p>
+                    <button id="startTourBtn" class="mt-8 bg-white text-amber-700 px-6 py-3 rounded-full font-medium hover:bg-amber-50 transition-colors flex items-center">
+                        <i class="fas fa-headphones mr-2"></i>开始语音导览之旅
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                <div class="scroll-animation">
+                    <h2 class="section-heading text-2xl font-bold text-gray-800 mb-6">世界文化遗产·云冈石窟</h2>
+                    <p class="text-gray-700 mb-4">云冈石窟位于山西省大同市西郊约17公里处的武州山南麓，是中国四大石窟之一，与敦煌莫高窟、洛阳龙门石窟和天水麦积山石窟齐名。它始建于北魏时期，东西绵延约1公里，现存主要洞窟45个，大小窟龛254个，石雕造像51000余躯，雕刻面积达18000余平方米。</p>
+                    <p class="text-gray-700 mb-4">云冈石窟的开凿始于北魏太武帝拓跋焘时期，由著名高僧昙曜主持，1500多年来见证了中国古代杰出的雕刻艺术和佛教文化的融合。它是中外文化、中国少数民族文化和中原文化、佛教艺术与石刻艺术相融合的一座文化艺术宝库，1961年被列为首批全国重点文物保护单位，2001年被列入《世界遗产名录》。</p>
+                    <div class="flex flex-wrap gap-4 mt-6">
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                <i class="fas fa-mountain"></i>
+                            </div>
+                            <span class="ml-2 text-gray-600">45个主要洞窟</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                <i class="fas fa-landmark"></i>
+                            </div>
+                            <span class="ml-2 text-gray-600">世界文化遗产</span>
+                        </div>
+                        <div class="flex items-center">
+                            <div class="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600">
+                                <i class="fas fa-history"></i>
+                            </div>
+                            <span class="ml-2 text-gray-600">1500年历史</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="scroll-animation">
+                    <div class="audio-player p-6 h-full">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">云冈石窟总体介绍</h3>
+                        <p class="text-gray-600 mb-6">聆听云冈石窟的历史与艺术价值全面介绍，了解这座世界文化遗产的发展脉络。</p>
+                        <div class="progress-container mb-2">
+                            <div class="progress-bar" style="width: 0%"></div>
+                            <div class="progress-handle" style="left: 0%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-gray-500 mb-4">
+                            <span class="current-time">00:00</span>
+                            <span class="duration">01:45</span>
+                        </div>
+                        <div class="flex justify-center">
+                            <button class="play-btn w-16 h-16 rounded-full bg-amber-500 text-white flex items-center justify-center focus:outline-none" data-audio="https://skyagent-artifacts.tiangong.cn/voice/8b52415e-961a-4826-9864-ca77ceecb597/voice_20250601_083637.mp3">
+                                <i class="fas fa-play"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="scroll-animation bg-white rounded-xl shadow-lg p-6 mb-12">
+                <h2 class="section-heading text-2xl font-bold text-gray-800 mb-6">云冈石窟精华景点</h2>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
+                    <a href="#damyao" class="group">
+                        <div class="bg-amber-50 p-4 rounded-lg transition-transform transform hover:scale-105">
+                            <img src="http://n.sinaimg.cn/front20200531ac/594/w837h557/20200531/fe85-iumkapv7030122.jpg" alt="昙曜五窟" class="w-full h-48 object-cover rounded-lg mb-4 img-shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-amber-600">昙曜五窟</h3>
+                            <p class="text-gray-600 text-sm">第16-20窟，云冈最早期开凿的洞窟群</p>
+                        </div>
+                    </a>
+                    <a href="#shuangku" class="group">
+                        <div class="bg-amber-50 p-4 rounded-lg transition-transform transform hover:scale-105">
+                            <img src="https://www.zsbeike.com/imgs/O/O08002/O08002.0008.0[06803cb28fc4].jpg" alt="第5-6窟双窟" class="w-full h-48 object-cover rounded-lg mb-4 img-shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-amber-600">第5-6窟双窟</h3>
+                            <p class="text-gray-600 text-sm">云冈艺术的精华，雕刻最精美的洞窟</p>
+                        </div>
+                    </a>
+                    <a href="#wuhua" class="group">
+                        <div class="bg-amber-50 p-4 rounded-lg transition-transform transform hover:scale-105">
+                            <img src="https://pic.ntimg.cn/20090829/3145742_092029082230_2.jpg" alt="第9-13窟五华洞" class="w-full h-48 object-cover rounded-lg mb-4 img-shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-amber-600">五华洞</h3>
+                            <p class="text-gray-600 text-sm">第9-13窟，云冈仅有的彩绘洞窟</p>
+                        </div>
+                    </a>
+                    <a href="#lingyan" class="group">
+                        <div class="bg-amber-50 p-4 rounded-lg transition-transform transform hover:scale-105">
+                            <img src="https://img.redocn.com/sheying/20150525/yungangshikudi5kufoxiang_4394982.jpg" alt="第3窟灵岩寺洞" class="w-full h-48 object-cover rounded-lg mb-4 img-shadow">
+                            <h3 class="text-lg font-semibold text-gray-800 group-hover:text-amber-600">第3窟灵岩寺</h3>
+                            <p class="text-gray-600 text-sm">云冈石窟中规模最大的洞窟</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- 昙曜五窟部分 -->
+        <section id="damyao" class="py-16 border-t border-gray-200">
+            <div class="scroll-animation">
+                <h2 class="section-heading text-2xl font-bold text-gray-800 mb-10">昙曜五窟（第16-20窟）</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <div>
+                        <div class="relative rounded-xl overflow-hidden mb-6">
+                            <img src="http://n.sinaimg.cn/front20200531ac/594/w837h557/20200531/fe85-iumkapv7030122.jpg" alt="第20窟露天大佛" class="w-full h-auto">
+                            <div class="absolute bottom-0 left-0 bg-black bg-opacity-60 text-white py-2 px-4 rounded-tr-lg">
+                                <p class="text-sm">第20窟露天大佛</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="relative rounded-xl overflow-hidden">
+                                <img src="http://n.sinaimg.cn/front20200531ac/66/w690h976/20200531/5e31-iumkapv7030779.jpg" alt="昙曜五窟细节" class="w-full h-36 object-cover">
+                            </div>
+                            <div class="relative rounded-xl overflow-hidden">
+                                <img src="http://n.sinaimg.cn/sinakd20118/598/w840h558/20200531/4c63-iumkapv7033293.jpg" alt="昙曜五窟全景" class="w-full h-36 object-cover">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">云冈最早开凿的皇家石窟</h3>
+                        <p class="text-gray-700 mb-4">昙曜五窟是云冈石窟最早期开凿的洞窟群，也就是第16窟到第20窟。这组石窟是北魏文成帝时期，由高僧昙曜主持开凿，因此被称为"昙曜五窟"，开凿于公元460年至465年间。</p>
+                        <p class="text-gray-700 mb-4">昙曜五窟采用西域风格，马蹄形平面，雕刻气势宏伟，风格古朴粗犷，具有浓厚的异域风情。其中，第20窟是云冈最著名的露天大佛，高达13.7米，依据北魏开国皇帝道武帝的形象雕刻而成。</p>
+                        <div class="bg-amber-50 p-4 rounded-lg mb-6">
+                            <h4 class="font-semibold text-amber-700">文化亮点</h4>
+                            <p class="text-gray-600 text-sm">昙曜五窟的造像以大型主尊佛像为特点，佛像面相丰满，高鼻深目，具有鲜明的非汉族特征，反映了当时少数民族统治者信仰佛教的历史背景。</p>
+                        </div>
+                        
+                        <div class="audio-player p-4 mb-4">
+                            <h4 class="font-semibold text-gray-800 mb-2">昙曜五窟语音讲解</h4>
+                            <div class="progress-container mb-2">
+                                <div class="progress-bar" style="width: 0%"></div>
+                                <div class="progress-handle" style="left: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mb-4">
+                                <span class="current-time">00:00</span>
+                                <span class="duration">01:35</span>
+                            </div>
+                            <div class="flex justify-center">
+                                <button class="play-btn w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center focus:outline-none" data-audio="https://skyagent-artifacts.tiangong.cn/voice/252eee1c-c811-45b4-be0c-4c24b657d79a/voice_20250601_083751.mp3">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第5-6窟双窟部分 -->
+        <section id="shuangku" class="py-16 border-t border-gray-200">
+            <div class="scroll-animation">
+                <h2 class="section-heading text-2xl font-bold text-gray-800 mb-10">第5-6窟双窟</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <div class="order-2 md:order-1">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">云冈石窟的艺术瑰宝</h3>
+                        <p class="text-gray-700 mb-4">第5窟和第6窟是一组统一设计、建造的双窟，开凿于北魏孝文帝太和年间，大约公元470至494年间。两窟外各有一座清代顺治八年加盖的四层五间式木构阁楼，清代号称"云冈佛阁"或"石窟摩云"，为云中八景之一。</p>
+                        <p class="text-gray-700 mb-4">第5窟又被称为"弥勒佛洞"，北壁正中坐佛高达17米，是云冈石窟最高的造像之一。第6窟是云冈石窟雕刻中设计最精细，雕刻最华丽，内容最丰富，造像最多的精华洞窟，被称为"塔庙窟"。</p>
+                        
+                        <div class="bg-amber-50 p-4 rounded-lg mb-6">
+                            <h4 class="font-semibold text-amber-700">艺术特色</h4>
+                            <p class="text-gray-600 text-sm">第5窟和第6窟的造像风格已经开始由早期的胡化风格转向汉化风格，佛像面部线条柔和，衣着服饰趋于中国化，反映了北魏孝文帝时期推行汉化政策的历史背景。</p>
+                        </div>
+                        
+                        <div class="audio-player p-4 mb-4">
+                            <h4 class="font-semibold text-gray-800 mb-2">第5-6窟双窟语音讲解</h4>
+                            <div class="progress-container mb-2">
+                                <div class="progress-bar" style="width: 0%"></div>
+                                <div class="progress-handle" style="left: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mb-4">
+                                <span class="current-time">00:00</span>
+                                <span class="duration">02:12</span>
+                            </div>
+                            <div class="flex justify-center">
+                                <button class="play-btn w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center focus:outline-none" data-audio="https://skyagent-artifacts.tiangong.cn/voice/00fac4e9-3a4a-492c-b780-41d38fdbc516/voice_20250601_083844.mp3">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="order-1 md:order-2">
+                        <div class="relative rounded-xl overflow-hidden mb-6">
+                            <img src="https://www.zsbeike.com/imgs/O/O08002/O08002.0008.0[06803cb28fc4].jpg" alt="第5-6窟阁楼外景" class="w-full h-auto">
+                            <div class="absolute bottom-0 left-0 bg-black bg-opacity-60 text-white py-2 px-4 rounded-tr-lg">
+                                <p class="text-sm">第5-6窟阁楼外景</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="relative rounded-xl overflow-hidden">
+                                <img src="https://img.redocn.com/sheying/20150525/yungangshikudi5kufoxiang_4394982.jpg" alt="第5窟佛像" class="w-full h-36 object-cover">
+                            </div>
+                            <div class="relative rounded-xl overflow-hidden">
+                                <img src="https://pic1.zhimg.com/v2-3f2e08aa8bf0bbee17411667a9a6a594_r.jpg" alt="第6窟中心塔柱" class="w-full h-36 object-cover">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第9-13窟五华洞部分 -->
+        <section id="wuhua" class="py-16 border-t border-gray-200">
+            <div class="scroll-animation">
+                <h2 class="section-heading text-2xl font-bold text-gray-800 mb-10">第9-13窟五华洞</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <div>
+                        <div class="relative rounded-xl overflow-hidden mb-6">
+                            <img src="https://pic.ntimg.cn/20090829/3145742_092029082230_2.jpg" alt="五华洞外景" class="w-full h-auto">
+                            <div class="absolute bottom-0 left-0 bg-black bg-opacity-60 text-white py-2 px-4 rounded-tr-lg">
+                                <p class="text-sm">五华洞彩绘造像</p>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="relative rounded-xl overflow-hidden">
+                                <img src="https://img1.qunarzz.com/travel/d5/1612/5e/88eb02915f2799b5.jpg_r_640x426x70_f2df3431.jpg" alt="五华洞内部" class="w-full h-36 object-cover">
+                            </div>
+                            <div class="relative rounded-xl overflow-hidden">
+                                <img src="https://5b0988e595225.cdn.sohucs.com/images/20190323/8767dc94588c46b6ba8120024c660b2e.jpeg" alt="五华洞细节" class="w-full h-36 object-cover">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">云冈仅有的彩绘洞窟</h3>
+                        <p class="text-gray-700 mb-4">第9窟到第13窟被通称为"五华洞"，这组洞窟因后世敷泥施彩绘而变得绚丽多彩。五华洞营造于北魏孝文帝时期，大约公元471年至494年间，是云冈石窟中后期开凿的精品洞窟。</p>
+                        <p class="text-gray-700 mb-4">五华洞分为两组：第9窟和第10窟是一组双窟，第11窟、第12窟和第13窟是另一组。其中第9窟和第10窟是具有汉式殿堂布局形式的双窟，洞窟内雕刻的建筑形象已出现中国传统的瓦顶建筑、斗拱构件等典型汉式建筑元素。</p>
+                        
+                        <div class="bg-amber-50 p-4 rounded-lg mb-6">
+                            <h4 class="font-semibold text-amber-700">文化特点</h4>
+                            <p class="text-gray-600 text-sm">五华洞窟内造像风格明显汉化，佛像面部圆润，体态丰满，衣纹流畅自然，具有浓郁的中国传统审美情趣。洞窟中的建筑元素、装饰纹样也更多地采用了中国传统的艺术形式。</p>
+                        </div>
+                        
+                        <div class="audio-player p-4 mb-4">
+                            <h4 class="font-semibold text-gray-800 mb-2">五华洞语音讲解</h4>
+                            <div class="progress-container mb-2">
+                                <div class="progress-bar" style="width: 0%"></div>
+                                <div class="progress-handle" style="left: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mb-4">
+                                <span class="current-time">00:00</span>
+                                <span class="duration">02:26</span>
+                            </div>
+                            <div class="flex justify-center">
+                                <button class="play-btn w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center focus:outline-none" data-audio="https://skyagent-artifacts.tiangong.cn/voice/f0dcc274-49a2-47bc-a1bf-c9f7d57200e5/voice_20250601_083933.mp3">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 第3窟灵岩寺洞部分 -->
+        <section id="lingyan" class="py-16 border-t border-gray-200">
+            <div class="scroll-animation">
+                <h2 class="section-heading text-2xl font-bold text-gray-800 mb-10">第3窟灵岩寺洞</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <div class="order-2 md:order-1">
+                        <h3 class="text-xl font-semibold text-gray-800 mb-4">云冈规模最大的洞窟</h3>
+                        <p class="text-gray-700 mb-4">第3窟是云冈石窟中规模最大的洞窟，也被称为"灵岩寺洞"。据考证，第3窟正是历史文献中记载的灵岩寺，是高僧昙曜译经的场所，当时可居僧人达3000人。</p>
+                        <p class="text-gray-700 mb-4">第3窟前面断壁高约25米，窟内分为前后两室。前室上部中间凿出一个弥勒窟室，左右凿出一对三层方塔，设计宏伟。后室南面西侧雕刻有面貌圆润、肌肉丰满、花冠精细、衣纹流畅的三尊造像，工艺精湛，栩栩如生。</p>
+                        
+                        <div class="bg-amber-50 p-4 rounded-lg mb-6">
+                            <h4 class="font-semibold text-amber-700">历史价值</h4>
+                            <p class="text-gray-600 text-sm">第3窟作为昙曜译经的场所，不仅仅是一座石窟艺术珍品，更是北魏时期佛教文化传播和发展的重要历史见证。昙曜是北魏时期重要的高僧，对中国佛教的发展做出了重要贡献。</p>
+                        </div>
+                        
+                        <div class="audio-player p-4 mb-4">
+                            <h4 class="font-semibold text-gray-800 mb-2">第3窟灵岩寺语音讲解</h4>
+                            <div class="progress-container mb-2">
+                                <div class="progress-bar" style="width: 0%"></div>
+                                <div class="progress-handle" style="left: 0%"></div>
+                            </div>
+                            <div class="flex justify-between text-xs text-gray-500 mb-4">
+                                <span class="current-time">00:00</span>
+                                <span class="duration">01:54</span>
+                            </div>
+                            <div class="flex justify-center">
+                                <button class="play-btn w-12 h-12 rounded-full bg-amber-500 text-white flex items-center justify-center focus:outline-none" data-audio="https://skyagent-artifacts.tiangong.cn/voice/677a9388-2bd2-4c3b-ab83-26f8cd0d1b9e/voice_20250601_084030.mp3">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="order-1 md:order-2">
+                        <div class="relative rounded-xl overflow-hidden mb-6">
+                            <img src="https://y2.ifengimg.com/a/2015_10/bba2a978539bfda.jpg" alt="第3窟灵岩寺洞" class="w-full h-auto">
+                            <div class="absolute bottom-0 left-0 bg-black bg-opacity-60 text-white py-2 px-4 rounded-tr-lg">
+                                <p class="text-sm">第3窟灵岩寺洞</p>
+                            </div>
+                        </div>
+                        <div class="bg-white p-4 rounded-lg shadow-md">
+                            <h4 class="font-semibold text-gray-800 mb-2">洞窟结构</h4>
+                            <ul class="text-gray-700 text-sm space-y-2">
+                                <li class="flex items-start">
+                                    <i class="fas fa-circle text-xs text-amber-500 mt-1 mr-2"></i>
+                                    <span>前室上部：中间凿出一个弥勒窟室，左右凿出一对三层方塔</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-circle text-xs text-amber-500 mt-1 mr-2"></i>
+                                    <span>后室：南面西侧雕刻有三尊精美造像</span>
+                                </li>
+                                <li class="flex items-start">
+                                    <i class="fas fa-circle text-xs text-amber-500 mt-1 mr-2"></i>
+                                    <span>断壁：高约25米，传为昙曜译经楼</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- 云冈石窟旅游指南 -->
+        <section id="guide" class="py-16 border-t border-gray-200">
+            <div class="scroll-animation">
+                <h2 class="section-heading text-2xl font-bold text-gray-800 mb-10">旅游实用指南</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-4">
+                            <i class="fas fa-calendar-alt text-xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">最佳游览时间</h3>
+                        <p class="text-gray-600">云冈石窟位于山西省大同市南郊，四季分明。春秋两季（4-5月和9-10月）是最佳游览时间，此时气候宜人，石窟内外景色也最为优美。</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-4">
+                            <i class="fas fa-ticket-alt text-xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">门票信息</h3>
+                        <p class="text-gray-600 mb-2">成人票：旺季120元，淡季100元</p>
+                        <p class="text-gray-600 mb-2">优惠政策：学生、老人、军人等凭有效证件可享受优惠</p>
+                        <p class="text-gray-600">开放时间：8:30-17:30（旺季），8:30-17:00（淡季）</p>
+                    </div>
+                    
+                    <div class="bg-white p-6 rounded-lg shadow-md">
+                        <div class="w-12 h-12 bg-amber-100 rounded-full flex items-center justify-center text-amber-600 mb-4">
+                            <i class="fas fa-subway text-xl"></i>
+                        </div>
+                        <h3 class="text-lg font-semibold text-gray-800 mb-3">交通指南</h3>
+                        <p class="text-gray-600 mb-2">1. 大同汽车客运站乘坐38路到达清远西街口站，换乘快速旅游603线直达云冈石窟景区</p>
+                        <p class="text-gray-600">2. 大同汽车客运站乘坐38路到达同泉路西环路口站，换乘3路公交直达云冈石窟景区</p>
+                    </div>
+                </div>
+                
+                <div class="bg-amber-50 p-6 rounded-lg mt-8">
+                    <h3 class="text-lg font-semibold text-amber-700 mb-4">游览建议</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="font-medium text-gray-800 mb-2">深度游路线（全天）</h4>
+                            <ol class="text-gray-600 space-y-2 list-decimal ml-5">
+                                <li>从云冈石窟东部开始，先参观第1-4窟</li>
+                                <li>重点游览第5-6窟双窟</li>
+                                <li>中部参观昙曜五窟（第16-20窟）</li>
+                                <li>如开放，参观五华洞（第9-13窟）</li>
+                                <li>参观第3窟灵岩寺洞</li>
+                                <li>游览云冈博物馆，了解更多文物和历史</li>
+                            </ol>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-800 mb-2">轻松游路线（半日）</h4>
+                            <ol class="text-gray-600 space-y-2 list-decimal ml-5">
+                                <li>重点参观第20窟露天大佛</li>
+                                <li>游览第5-6窟双窟（云冈精华所在）</li>
+                                <li>如时间允许，参观第3窟灵岩寺洞</li>
+                                <li>游览云冈博物馆，了解石窟历史文化</li>
+                            </ol>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row justify-between items-center">
+                <div class="mb-6 md:mb-0">
+                    <h3 class="text-xl font-bold mb-2">云冈石窟语音导览</h3>
+                    <p class="text-gray-300">聆听历史的声音，感受石窟的艺术魅力</p>
+                </div>
+                <div class="flex flex-wrap gap-4 justify-center">
+                    <a href="#home" class="text-gray-300 hover:text-white transition-colors">
+                        <i class="fas fa-home mr-1"></i> 首页
+                    </a>
+                    <a href="#damyao" class="text-gray-300 hover:text-white transition-colors">
+                        <i class="fas fa-landmark mr-1"></i> 昙曜五窟
+                    </a>
+                    <a href="#shuangku" class="text-gray-300 hover:text-white transition-colors">
+                        <i class="fas fa-archway mr-1"></i> 双窟
+                    </a>
+                    <a href="#wuhua" class="text-gray-300 hover:text-white transition-colors">
+                        <i class="fas fa-paint-brush mr-1"></i> 五华洞
+                    </a>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-6 pt-6 text-center text-gray-400 text-sm">
+                <p>© 2025 云冈石窟语音讲解系统 | 替代景区讲解器的线上服务</p>
+                <p class="mt-2">本网站图片来源于网络，版权归原作者所有</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 悬浮音频播放器 -->
+    <div id="floatingPlayer" class="fixed bottom-4 left-1/2 transform -translate-x-1/2 audio-player px-4 py-3 flex items-center space-x-4 shadow-lg w-11/12 md:w-auto md:min-w-[400px] z-40 hidden">
+        <button id="floatingPlayBtn" class="play-btn w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center flex-shrink-0">
+            <i class="fas fa-play"></i>
+        </button>
+        <div class="flex-grow">
+            <div class="flex justify-between text-sm mb-1">
+                <span id="floatingTitle" class="font-medium text-gray-800">正在播放...</span>
+                <span id="floatingTime" class="text-gray-600">00:00 / 00:00</span>
+            </div>
+            <div class="progress-container">
+                <div id="floatingProgress" class="progress-bar" style="width: 0%"></div>
+                <div id="floatingHandle" class="progress-handle" style="left: 0%"></div>
+            </div>
+        </div>
+        <button id="closeFloating" class="text-gray-500 hover:text-gray-800">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <script>
+        // 音频播放器功能
+        document.addEventListener('DOMContentLoaded', function() {
+            const playBtns = document.querySelectorAll('.play-btn');
+            const menuBtn = document.getElementById('menuBtn');
+            const mobileMenu = document.getElementById('mobileMenu');
+            const navLinks = document.querySelectorAll('.nav-link');
+            const progressContainers = document.querySelectorAll('.progress-container');
+            const progressBars = document.querySelectorAll('.progress-bar');
+            const progressHandles = document.querySelectorAll('.progress-handle');
+            const floatingPlayer = document.getElementById('floatingPlayer');
+            const floatingPlayBtn = document.getElementById('floatingPlayBtn');
+            const floatingProgress = document.getElementById('floatingProgress');
+            const floatingHandle = document.getElementById('floatingHandle');
+            const floatingTitle = document.getElementById('floatingTitle');
+            const floatingTime = document.getElementById('floatingTime');
+            const closeFloating = document.getElementById('closeFloating');
+            const startTourBtn = document.getElementById('startTourBtn');
+            
+            window.globalAudio = window.globalAudio || new Audio();
+            let currentAudio = window.globalAudio;
+            let currentBtn = null;
+            let currentProgressContainer = null;
+            let currentProgressBar = null;
+            let currentProgressHandle = null;
+            let currentTimeEl = null;
+            let durationEl = null;
+            let isDragging = false;
+            let audioMeta = {}; // 存储音频元数据
+            
+            // 首页开始语音导览按钮处理
+            startTourBtn.addEventListener('click', function() {
+                // 滚动到第一个景点并开始播放总体介绍
+                document.querySelector('section:first-of-type .play-btn').click();
+                // 平滑滚动到总体介绍
+                const overviewSection = document.querySelector('section:first-of-type');
+                overviewSection.scrollIntoView({ behavior: 'smooth' });
+            });
+            
+            // 滚动动画
+            const scrollElements = document.querySelectorAll('.scroll-animation');
+            
+            const elementInView = (el, percentageScroll = 100) => {
+                const elementTop = el.getBoundingClientRect().top;
+                return (elementTop <= (window.innerHeight * (percentageScroll/100)));
+            };
+            
+            const displayScrollElement = (element) => {
+                element.classList.add('visible');
+            };
+            
+            const hideScrollElement = (element) => {
+                element.classList.remove('visible');
+            };
+            
+            const handleScrollAnimation = () => {
+                scrollElements.forEach((el) => {
+                    if (elementInView(el, 85)) {
+                        displayScrollElement(el);
+                    } else {
+                        hideScrollElement(el);
+                    }
+                });
+            };
+            
+            window.addEventListener('scroll', () => {
+                handleScrollAnimation();
+            });
+            
+            // 初始化滚动动画
+            handleScrollAnimation();
+            
+            // 移动端菜单
+            menuBtn.addEventListener('click', function() {
+                mobileMenu.classList.toggle('active');
+            });
+            
+            // 导航链接
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    navLinks.forEach(l => l.classList.remove('active'));
+                    this.classList.add('active');
+                    mobileMenu.classList.remove('active');
+                });
+            });
+            
+            // 格式化时间为 MM:SS 格式
+            function formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = Math.floor(seconds % 60);
+                return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+            }
+            
+            // 处理进度条拖动功能
+            function setupProgressDrag(container, bar, handle) {
+                // 鼠标点击事件处理
+                container.addEventListener('mousedown', function(e) {
+                    if (!currentAudio) return;
+                    
+                    const rect = container.getBoundingClientRect();
+                    const ratio = (e.clientX - rect.left) / rect.width;
+                    
+                    // 限制在0-1范围
+                    const boundedRatio = Math.max(0, Math.min(1, ratio));
+                    
+                    updateProgressPosition(boundedRatio, bar, handle);
+                    currentAudio.currentTime = boundedRatio * currentAudio.duration;
+                    
+                    // 更新当前时间显示
+                    if (currentTimeEl) {
+                        currentTimeEl.textContent = formatTime(currentAudio.currentTime);
+                    }
+                    
+                    // 更新浮动播放器时间
+                    updateFloatingTimeDisplay(currentAudio.currentTime, currentAudio.duration);
+                    
+                    isDragging = true;
+                    currentProgressContainer = container;
+                    currentProgressBar = bar;
+                    currentProgressHandle = handle;
+                });
+                
+                // 触摸事件处理（移动端）
+                container.addEventListener('touchstart', function(e) {
+                    if (!currentAudio) return;
+                    
+                    const rect = container.getBoundingClientRect();
+                    const touch = e.touches[0];
+                    const ratio = (touch.clientX - rect.left) / rect.width;
+                    
+                    // 限制在0-1范围
+                    const boundedRatio = Math.max(0, Math.min(1, ratio));
+                    
+                    updateProgressPosition(boundedRatio, bar, handle);
+                    currentAudio.currentTime = boundedRatio * currentAudio.duration;
+                    
+                    // 更新当前时间显示
+                    if (currentTimeEl) {
+                        currentTimeEl.textContent = formatTime(currentAudio.currentTime);
+                    }
+                    
+                    // 更新浮动播放器时间
+                    updateFloatingTimeDisplay(currentAudio.currentTime, currentAudio.duration);
+                    
+                    isDragging = true;
+                    currentProgressContainer = container;
+                    currentProgressBar = bar;
+                    currentProgressHandle = handle;
+                    
+                    // 阻止触摸事件的默认行为（滚动）
+                    e.preventDefault();
+                }, { passive: false });
+            }
+            
+            // 为所有进度条添加拖动功能
+            progressContainers.forEach((container, index) => {
+                const bar = progressBars[index];
+                const handle = progressHandles[index];
+                setupProgressDrag(container, bar, handle);
+            });
+            
+            // 为浮动播放器进度条添加拖动功能
+            setupProgressDrag(document.querySelector('#floatingPlayer .progress-container'), floatingProgress, floatingHandle);
+            
+            // 全局鼠标移动事件
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging || !currentAudio || !currentProgressContainer) return;
+                
+                const rect = currentProgressContainer.getBoundingClientRect();
+                let ratio = (e.clientX - rect.left) / rect.width;
+                
+                // 限制在0-1范围内
+                ratio = Math.max(0, Math.min(1, ratio));
+                
+                updateProgressPosition(ratio, currentProgressBar, currentProgressHandle);
+                updateFloatingProgress(ratio);
+                
+                // 实时更新当前时间文本（不更新实际音频位置，只在释放鼠标时更新）
+                const currentTime = ratio * currentAudio.duration;
+                if (currentTimeEl) {
+                    currentTimeEl.textContent = formatTime(currentTime);
+                }
+                
+                // 更新浮动播放器预览时间
+                const durationTime = currentAudio.duration;
+                floatingTime.textContent = `${formatTime(currentTime)} / ${formatTime(durationTime)}`;
+            });
+            
+            // 全局触摸移动事件（移动端）
+            document.addEventListener('touchmove', function(e) {
+                if (!isDragging || !currentAudio || !currentProgressContainer) return;
+                
+                const rect = currentProgressContainer.getBoundingClientRect();
+                const touch = e.touches[0];
+                let ratio = (touch.clientX - rect.left) / rect.width;
+                
+                // 限制在0-1范围内
+                ratio = Math.max(0, Math.min(1, ratio));
+                
+                updateProgressPosition(ratio, currentProgressBar, currentProgressHandle);
+                updateFloatingProgress(ratio);
+                
+                // 实时更新当前时间文本（不更新实际音频位置，只在释放触摸时更新）
+                const currentTime = ratio * currentAudio.duration;
+                if (currentTimeEl) {
+                    currentTimeEl.textContent = formatTime(currentTime);
+                }
+                
+                // 更新浮动播放器预览时间
+                const durationTime = currentAudio.duration;
+                floatingTime.textContent = `${formatTime(currentTime)} / ${formatTime(durationTime)}`;
+                
+                // 阻止触摸事件的默认行为（滚动）
+                e.preventDefault();
+            }, { passive: false });
+            
+            // 鼠标释放事件
+            document.addEventListener('mouseup', function(e) {
+                if (isDragging && currentAudio && currentProgressContainer) {
+                    const rect = currentProgressContainer.getBoundingClientRect();
+                    let ratio = (e.clientX - rect.left) / rect.width;
+                    
+                    // 限制在0-1范围内
+                    ratio = Math.max(0, Math.min(1, ratio));
+                    
+                    // 更新音频时间
+                    currentAudio.currentTime = ratio * currentAudio.duration;
+                    
+                    // 最终更新进度条和时间显示
+                    updateProgressPosition(ratio, currentProgressBar, currentProgressHandle);
+                    updateFloatingProgress(ratio);
+                    
+                    if (currentTimeEl) {
+                        currentTimeEl.textContent = formatTime(currentAudio.currentTime);
+                    }
+                    updateFloatingTimeDisplay(currentAudio.currentTime, currentAudio.duration);
+                }
+                
+                isDragging = false;
+            });
+            
+            // 触摸结束事件（移动端）
+            document.addEventListener('touchend', function(e) {
+                if (isDragging && currentAudio && currentProgressContainer) {
+                    // 使用最后记录的比例
+                    const ratio = parseFloat(currentProgressBar.style.width) / 100;
+                    
+                    // 更新音频时间
+                    currentAudio.currentTime = ratio * currentAudio.duration;
+                    
+                    // 最终更新时间显示
+                    if (currentTimeEl) {
+                        currentTimeEl.textContent = formatTime(currentAudio.currentTime);
+                    }
+                    updateFloatingTimeDisplay(currentAudio.currentTime, currentAudio.duration);
+                }
+                
+                isDragging = false;
+            });
+            
+            // 更新进度条位置
+            function updateProgressPosition(ratio, bar, handle) {
+                const percent = ratio * 100;
+                bar.style.width = `${percent}%`;
+                handle.style.left = `${percent}%`;
+            }
+            
+            // 更新浮动播放器进度
+            function updateFloatingProgress(ratio) {
+                const percent = ratio * 100;
+                floatingProgress.style.width = `${percent}%`;
+                floatingHandle.style.left = `${percent}%`;
+            }
+            
+            // 更新浮动播放器时间显示
+            function updateFloatingTimeDisplay(currentTime, duration) {
+                floatingTime.textContent = `${formatTime(currentTime)} / ${formatTime(duration)}`;
+            }
+            
+            // 预加载音频元数据
+            function preloadAudioMeta(audioUrl) {
+                return new Promise((resolve, reject) => {
+                    const tempAudio = new Audio(audioUrl);
+                    tempAudio.addEventListener('loadedmetadata', () => {
+                        audioMeta[audioUrl] = {
+                            duration: tempAudio.duration
+                        };
+                        resolve(tempAudio.duration);
+                    });
+                    tempAudio.addEventListener('error', (err) => {
+                        reject(err);
+                    });
+                });
+            }
+            
+            // 处理音频播放
+            playBtns.forEach(btn => {
+                const audioSrc = btn.getAttribute('data-audio');
+                const parent = btn.closest('.audio-player');
+                const durationEl = parent.querySelector('.duration');
+                preloadAudioMeta(audioSrc)
+                    .then(duration => {
+                        durationEl.textContent = formatTime(duration);
+                    })
+                    .catch(err => {
+                        console.error("音频加载失败:", err);
+                    });
+                btn.addEventListener('click', function() {
+                    currentBtn = this;
+                    const audioSrc = this.getAttribute('data-audio');
+                    const parent = this.closest('.audio-player');
+                    const progressContainer = parent.querySelector('.progress-container');
+                    const progressBar = parent.querySelector('.progress-bar');
+                    const progressHandle = parent.querySelector('.progress-handle');
+                    const currentTimeEl = parent.querySelector('.current-time');
+                    const durationEl = parent.querySelector('.duration');
+
+                    // 如果当前audio正在播放其他音频，先暂停
+                    if (!currentAudio.paused && currentAudio.src && currentAudio.src !== audioSrc) {
+                        currentAudio.pause();
+                        if (currentBtn) currentBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    }
+
+                    // 切换音频源
+                    if (currentAudio.src !== audioSrc) {
+                        currentAudio.src = audioSrc;
+                        currentAudio.currentTime = 0;
+                    }
+
+                    // 解绑之前的timeupdate事件
+                    if (currentAudio._progressListener) {
+                        currentAudio.removeEventListener('timeupdate', currentAudio._progressListener);
+                    }
+                    // 绑定新的timeupdate事件
+                    currentAudio._progressListener = function() {
+                        if (!isDragging) {
+                            const ratio = currentAudio.currentTime / currentAudio.duration;
+                            // 更新主进度条
+                            progressBar.style.width = (ratio * 100) + '%';
+                            progressHandle.style.left = (ratio * 100) + '%';
+                            // 更新时间显示
+                            if (currentTimeEl) currentTimeEl.textContent = formatTime(currentAudio.currentTime);
+                        }
+                    };
+                    currentAudio.addEventListener('timeupdate', currentAudio._progressListener);
+
+                    // 切换播放/暂停
+                    if (currentAudio.paused) {
+                        currentAudio.play().catch(error => {
+                            console.error("播放失败:", error);
+                            alert("播放失败，请重试。");
+                        });
+                        this.innerHTML = '<i class="fas fa-pause"></i>';
+                        floatingPlayBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                    } else {
+                        currentAudio.pause();
+                        this.innerHTML = '<i class="fas fa-play"></i>';
+                        floatingPlayBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    }
+
+                    window.currentAudio = currentAudio;
+                    currentProgressContainer = progressContainer;
+                    currentProgressBar = progressBar;
+                    currentProgressHandle = progressHandle;
+                });
+            });
+            
+            // 浮动播放器
+            function showFloatingPlayer(audioSrc) {
+                floatingPlayer.classList.remove('hidden');
+                
+                // 设置标题
+                let title = "云冈石窟总体介绍";
+                if (audioSrc.includes('252eee1c-c811-45b4-be0c-4c24b657d79a')) {
+                    title = "昙曜五窟讲解";
+                } else if (audioSrc.includes('00fac4e9-3a4a-492c-b780-41d38fdbc516')) {
+                    title = "第5-6窟双窟讲解";
+                } else if (audioSrc.includes('f0dcc274-49a2-47bc-a1bf-c9f7d57200e5')) {
+                    title = "第9-13窟五华洞讲解";
+                } else if (audioSrc.includes('677a9388-2bd2-4c3b-ab83-26f8cd0d1b9e')) {
+                    title = "第3窟灵岩寺讲解";
+                }
+                
+                floatingTitle.textContent = title;
+                floatingPlayBtn.innerHTML = '<i class="fas fa-pause"></i>';
+            }
+            
+            // 浮动播放器的播放/暂停按钮
+            floatingPlayBtn.addEventListener('click', function() {
+                if (currentAudio) {
+                    if (currentAudio.paused) {
+                        currentAudio.play().catch(error => {
+                            console.error("播放失败:", error);
+                            alert("播放失败，请重试。");
+                        });
+                        this.innerHTML = '<i class="fas fa-pause"></i>';
+                        currentBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                    } else {
+                        currentAudio.pause();
+                        this.innerHTML = '<i class="fas fa-play"></i>';
+                        currentBtn.innerHTML = '<i class="fas fa-play"></i>';
+                    }
+                }
+            });
+            
+            // 关闭浮动播放器
+            closeFloating.addEventListener('click', function() {
+                floatingPlayer.classList.add('hidden');
+                if (currentAudio) {
+                    currentAudio.pause();
+                    currentBtn.innerHTML = '<i class="fas fa-play"></i>';
+                }
+            });
+
+            // 新增：监听父页面的postMessage，收到pauseAudio时暂停音频
+            window.addEventListener('message', function(event) {
+                if (event.data && event.data.action === 'pauseAudio') {
+                    if (window.currentAudio) {
+                        window.currentAudio.pause();
+                    }
+                }
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,596 @@
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>故宫博物院语音导览</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700&display=swap');
+        
+        :root {
+            --primary-color: #9c0000;
+            --secondary-color: #e8c98d;
+            --text-color: #333;
+            --bg-color: #f8f4e6;
+        }
+        
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.6;
+        }
+        
+        .site-header {
+            background: linear-gradient(135deg, var(--primary-color), #620000);
+        }
+        
+        .nav-item {
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+            position: relative;
+        }
+        
+        .nav-item.active {
+            background-color: rgba(156, 0, 0, 0.1);
+            border-left: 4px solid var(--primary-color);
+            font-weight: 600;
+        }
+        
+        .nav-item:hover:not(.active) {
+            background-color: rgba(156, 0, 0, 0.05);
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .spot-image {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+        
+        .spot-image:hover {
+            transform: scale(1.02);
+        }
+        
+        .audio-player {
+            background: linear-gradient(to right, #f0e3ca, #f8f4e6);
+            border: 1px solid #e5d9bc;
+        }
+        
+        .progress-bar {
+            height: 6px;
+            cursor: pointer;
+            background-color: #e0d4b4;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            background-color: var(--primary-color);
+            height: 100%;
+            width: 0;
+            border-radius: 3px;
+        }
+        
+        .play-pause-btn {
+            background-color: var(--primary-color);
+            transition: all 0.3s ease;
+        }
+        
+        .play-pause-btn:hover {
+            background-color: #800000;
+            transform: scale(1.05);
+        }
+        
+        .mobile-menu-btn {
+            display: none;
+        }
+        
+        .scroll-indicator {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 100;
+            background-color: rgba(156, 0, 0, 0.7);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0;
+        }
+        
+        .scroll-indicator:hover {
+            background-color: var(--primary-color);
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-menu-btn {
+                display: block;
+            }
+            
+            .sidebar {
+                position: fixed;
+                top: 70px;
+                left: -100%;
+                width: 80%;
+                height: calc(100vh - 70px);
+                transition: all 0.3s ease;
+                z-index: 1000;
+            }
+            
+            .sidebar.active {
+                left: 0;
+            }
+            
+            .overlay {
+                position: fixed;
+                top: 70px;
+                left: 0;
+                width: 100%;
+                height: calc(100vh - 70px);
+                background-color: rgba(0, 0, 0, 0.5);
+                z-index: 999;
+                opacity: 0;
+                visibility: hidden;
+                transition: all 0.3s ease;
+            }
+            
+            .overlay.active {
+                opacity: 1;
+                visibility: visible;
+            }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col">
+    <!-- 头部 -->
+    <header class="site-header text-white py-4 px-6 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <div class="flex items-center">
+                <button class="mobile-menu-btn mr-4 focus:outline-none" id="mobileMenuBtn">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+                <h1 class="text-2xl md:text-3xl font-bold">故宫博物院语音导览</h1>
+            </div>
+            <div class="hidden md:flex items-center">
+                <a href="https://www.dpm.org.cn/" target="_blank" class="text-white hover:text-yellow-200 transition">
+                    <i class="fas fa-external-link-alt mr-1"></i> 故宫官网
+                </a>
+            </div>
+        </div>
+    </header>
+    
+    <div class="overlay" id="overlay"></div>
+    
+    <!-- 主体内容 -->
+    <div class="flex flex-1">
+        <!-- 侧边栏导航 -->
+        <nav class="sidebar bg-white w-64 md:w-72 shadow-lg overflow-y-auto z-10" id="sidebar">
+            <div class="p-4 bg-gray-100 border-b">
+                <h2 class="text-lg font-semibold text-gray-800">景点导航</h2>
+            </div>
+            <ul class="py-2" id="spotsList">
+                <!-- 景点列表将通过JS动态生成 -->
+            </ul>
+        </nav>
+        
+        <!-- 内容区域 -->
+        <main class="flex-1 p-4 md:p-6 overflow-y-auto" id="contentArea">
+            <!-- 景点内容将通过JS动态生成 -->
+        </main>
+    </div>
+    
+    <!-- 返回顶部按钮 -->
+    <div class="scroll-indicator" id="scrollTop">
+        <i class="fas fa-arrow-up"></i>
+    </div>
+    
+    <!-- 底部版权 -->
+    <footer class="bg-gray-800 text-white text-center p-4 text-sm">
+        <p>© 2025 故宫博物院语音导览 | 技术支持：故宫数字化中心</p>
+    </footer>
+
+    <script>
+        // 景点数据
+        const spots = [
+            {
+                id: 'wumen',
+                name: '午门',
+                image: 'https://img.dpm.org.cn/Uploads/Picture/2019/12/31/s5e0aaffe2cc85.jpg',
+                description: `午门是故宫的南大门，建于明永乐十八年（1420年）。它之所以称为"午门"，是因为在古代，正南方向属于午地，代表至高无上的皇权。作为紫禁城的正门，午门高达37.95米，建筑面积达到4795.25平方米，是一座"工"字形城楼。
+
+午门由五座门楼组成，中间为主楼，两侧有东西配楼，它们通过两座月牙形的城墙连接，形成三个门洞。中间的门洞仅供皇帝出入，文武百官必须从左右两侧的门洞通行。
+
+午门不仅是进出紫禁城的主要通道，更是皇帝举行重大典礼的场所。每逢元旦、冬至等重大节日，皇帝都会在这里颁布诏书、公布科举考试榜单。同时，这里也是公开处决重大犯人的地方，故有"推出午门斩首"的说法。
+
+站在午门城楼上，可以远眺天安门广场，近观故宫全景。明清时期的皇帝站在这里，居高临下地俯瞰着自己的臣民，感受着无上的权威与荣耀。`,
+                audio: 'https://skyagent-artifacts.tiangong.cn/voice/7dbeef7c-7631-4b43-b0e1-8566180c0811/voice_20250607_233557.mp3'
+            },
+            {
+                id: 'taihemen',
+                name: '太和门',
+                image: 'https://img.dpm.org.cn/Uploads/Picture/2020/04/16/s5e980c931a533.jpg',
+                description: `太和门是故宫外朝宫殿的正门，也是紫禁城内最大的宫门。它建成于明永乐十八年（1420年），当时称为"奉天门"。经历了多次更名，在明嘉靖年间曾改称"皇极门"，直到清顺治二年（1645年），才改为现在的名字——太和门。
+
+太和门是一座宏伟的建筑，面阔9间，进深4间，建筑面积达1371平方米，通高近24米，上覆重檐庑殿顶，黄琉璃瓦覆顶，金碧辉煌。门前有汉白玉石雕须弥座台基，两侧是栩栩如生的铜狮，它们是镇守皇宫的神兽，象征着皇权的威严与不可侵犯。
+
+太和门在古代有着重要的礼仪功能。明清时期，皇帝在这里举行御门听政，大臣们站在太和门外，等待太和殿内的皇帝宣诏，接到诏令后才能进入拜见、奏请或议事。在这里，还举行过顺治皇帝的登基大典和光绪皇帝的大婚典礼。
+
+穿过太和门，即将进入故宫最为壮观的建筑群——以太和殿为首的三大殿。这里是明清两朝皇帝举行重大典礼的核心场所，也是体现中华古代建筑艺术巅峰的杰作。`,
+                audio: 'https://skyagent-artifacts.tiangong.cn/voice/4ca21b28-ee89-4ed6-be7d-70080a21cd29/voice_20250607_233651.mp3'
+            },
+            {
+                id: 'taihedian',
+                name: '太和殿',
+                image: 'https://img95.699pic.com/photo/50242/7532.jpg_wh860.jpg',
+                description: `太和殿，俗称金銮殿，是整个紫禁城的中心，也是明清两朝皇帝举行大典、接受朝贺的地方。它始建于明永乐十八年（1420年），初名"奉天殿"，经历了多次灾毁与重建。明嘉靖朝时改名为"皇极殿"，清朝入主中原后于顺治二年（1645年）改为现在的名称。
+
+太和殿建筑面积达2377平方米，是紫禁城中最大的宫殿建筑。它矗立在三层汉白玉石砌的台基上，高达近30米，远远望去，气势恢宏，令人震撼。太和殿为重檐庑殿顶，屋顶上的脊饰极为华丽，正脊两端有"行什"，也就是吻兽，殿顶正中有鎏金宝顶，象征着皇权至高无上。殿内共有72根巨大的楠木柱子，其中围绕宝座的六根被贴上了黄金，上面雕刻着巨龙，称为"金龙柱"。殿内正中是皇帝的宝座，俗称"龙椅"，后有屏风，前有香案，周围摆放着各式仪仗，尽显帝王威严。
+
+在明清两代，太和殿主要用于皇帝登基、大婚、册立皇后、颁诏、接受万国朝贺等重大典礼。每年元旦、冬至和皇帝诞辰，百官要在这里向皇帝行三跪九叩首大礼。清朝康熙、乾隆两位皇帝在这里举行过盛大的"千叟宴"，宴请七十岁以上的老人，以示尊老敬老。
+
+太和殿的面积相当于半个足球场，长宽比例正好是九比五，古人用来代表"九五之尊"。殿内气势磅礴，金碧辉煌，体现了我国古代建筑艺术的最高成就，是中华文明的瑰宝。`,
+                audio: 'https://skyagent-artifacts.tiangong.cn/voice/bd3d5854-db84-4c52-b788-d12ab287a107/voice_20250607_233747.mp3'
+            },
+            {
+                id: 'zhongedian',
+                name: '中和殿',
+                image: 'https://img.dpm.org.cn/Uploads/Picture/2020/07/03/s5eff05cd7866d.jpg',
+                description: `中和殿位于太和殿和保和殿之间，是故宫三大殿中最小的一座。它始建于明永乐十八年（1420年），最初称为"华盖殿"，嘉靖年间经历火灾重修后改名为"中极殿"。清顺治二年（1645年）改为现在的名称——中和殿。如果仔细观察，在殿内天花板的构件上，至今仍能看到明代"中极殿"的墨迹，这是历史留下的印记。
+
+中和殿呈正方形，东西南北各五间，建筑面积约580平方米。尽管规模不大，但它的地位却十分重要。在封建王朝时期，这里是皇帝亲临太和殿举行大典前的暂坐之处。皇帝会在这里翻阅奏书，接受内阁、内务府、礼部和侍卫等执事官员的跪拜行礼。
+
+殿内中央摆放着一张宝座和一个宝匮（kuì）。宝座是皇帝休息时坐的，宝匮则是盛放玉玺和皇帝诏书的神圣容器。殿内的装饰简洁而庄重，相比太和殿的金碧辉煌，这里更显得庄严肃穆。
+
+中和殿的名称源自儒家思想中的"致中和"理念，体现了古人追求天地人和谐共处的哲学思想。"中和"二字，代表着平衡与和谐，象征着皇权与自然、人伦的统一。
+
+值得一提的是，清朝乾隆年间，皇帝在大典前会在中和殿稍作休息，然后乘小轿前往太和殿主持大典。这种仪式感充分体现了封建王朝对礼制的重视。`,
+                audio: 'https://skyagent-artifacts.tiangong.cn/voice/6a44e242-7186-429f-a4c7-b972c20754f5/voice_20250607_233839.mp3'
+            },
+            {
+                id: 'baohedian',
+                name: '保和殿',
+                image: 'https://img.dpm.org.cn/Uploads/Picture/2020/07/03/s5efedbf9edae0.jpg',
+                description: `保和殿是三大殿的最后一座，与太和殿、中和殿一起，构成了故宫外朝的核心区域。它始建于明永乐十八年（1420年），当时称为"建极殿"，清顺治二年（1645年）改为现在的名称。"保和"二字寓意维护天下和谐安定，体现了统治者追求国泰民安的理想。
+
+保和殿的建筑规模仅次于太和殿，面积约1240平方米，同样为重檐庑殿顶，金黄色的琉璃瓦在阳光下熠熠生辉。殿内的格局与太和殿相似，中央设有宝座，但装饰相对简朴一些。
+
+在明清两代，保和殿主要用于皇帝举行宴会和召见外国使节。每年正月十五元宵节，皇帝会在这里与文武百官共赏元宵，欣赏歌舞表演；端午节时，皇帝又会在此赐群臣雄黄酒。此外，保和殿还是举行殿试的地方。明清时期的科举最高一级考试——殿试就在这里进行，皇帝亲自主持考试，选拔人才。许多文人梦寐以求的状元、榜眼、探花称号，就是在这里诞生的。
+
+有趣的是，保和殿南侧的丹陛石上，刻有一个"卍"字图案。传说这是明代建筑工匠不小心刻错的，本应是"万"字，谐音"万岁"，象征皇帝万岁。但由于错刻成了佛教的吉祥符号"卍"，也就保留下来了。这个小小的人为失误，成为了故宫中一个有趣的文化符号。`,
+                audio: 'https://skyagent-artifacts.tiangong.cn/voice/1b559edf-b063-4ed9-8717-0254c68f097a/voice_20250607_233937.mp3'
+            },
+            {
+                id: 'qianqinggong',
+                name: '乾清宫',
+                image: 'https://img.dpm.org.cn/Uploads/Picture/2020/04/17/s5e997affc5961.jpg',
+                description: `乾清宫是内廷后三宫之一，也是明清两代皇帝的寝宫及其处理日常政务之所。它始建于明永乐十八年（1420年），清嘉庆三年（1798年）重建。"乾"在古代哲学中代表天，"清"代表纯净无瑕，"乾清"合起来象征着皇权如天一般崇高纯洁。
+
+乾清宫为黄琉璃瓦重檐庑殿顶，座落在单层汉白玉石雕须弥座台基上，面阔九间，进深五间，建筑面积约1400平方米。宫殿正面悬挂着一块"正大光明"的匾额，这是清康熙皇帝御笔亲书的，用来警示自己和后代子孙为政要光明正大、堂堂正正。
+
+在明代，乾清宫是皇帝的正寝，十四位皇帝都曾在此居住。清朝雍正时期以后，皇帝移居养心殿，乾清宫则主要用于接见王公大臣和举行一些重要仪式。每日早朝后，皇帝会在这里召见军机大臣，处理国家大事。
+
+宫内正中设有宝座，地面铺着红地毯，四周摆放着各种珍贵的陈设。最值得一提的是乾清宫内的"十二生肖"铜钟，它们是清乾隆年间的杰作，每到整点，钟内的机关会推动不同的生肖形象报时，体现了古代中国精湛的钟表技术。
+
+乾清宫的后墙有一个小门，通往后寝，那里才是皇帝真正休息的地方。据史料记载，明成祖朱棣就是在乾清宫的后殿去世的。而清朝末代皇帝溥仪也曾在此居住过一段时间。`,
+                audio: 'https://skyagent-artifacts.tiangong.cn/voice/72f4945e-82bd-46eb-aabd-3f6a060410f4/voice_20250607_234031.mp3'
+            },
+            {
+                id: 'jiaotaidian',
+                name: '交泰殿',
+                image: 'https://img.dpm.org.cn/Uploads/Picture/2020/04/17/s5e99791384387.jpg',
+                description: `交泰殿位于乾清宫和坤宁宫之间，是内廷后三宫的组成部分。这座不起眼的小殿虽然体量不大，却有着非同寻常的象征意义。它建于明嘉靖年间，"交泰"一词源自《易经》中的"乾坤交泰"，象征着天地交合、阴阳和谐，寓意皇帝与皇后和睦相处，共同孕育皇室后代，延续皇族血脉。
+
+交泰殿为单檐歇山顶，比两侧的乾清宫和坤宁宫低矮许多，建筑面积约340平方米。殿内陈设简单，正中摆放着一座宝座，这是皇后在举行大典前休息的地方。
+
+在封建社会，交泰殿的位置极具象征意义。它位于象征天（皇帝）的乾清宫和象征地（皇后）的坤宁宫之间，体现了中国古代阴阳五行的哲学思想，代表着皇权家族的生生不息。同时，它也是皇帝与皇后之间的纽带和联系，象征着皇室家族的团结与繁衍。
+
+明代时，皇帝在正月十五和每月初一、十五，要在交泰殿向皇太后请安，表达孝心；清代时，皇后在大年初一会在这里接受后妃们的朝贺。此外，交泰殿也是皇帝与皇后会面议事的地方，共同商讨后宫事务。
+
+值得一提的是，交泰殿还是清朝嘉庆皇帝遇刺的地点。嘉庆十八年（1813年），一群谋反者混入紫禁城，嘉庆帝正在交泰殿休息，侍卫奋力保护，才使皇帝躲过一劫。这一历史事件被后人称为"叩天事件"，也为交泰殿增添了几分神秘色彩。`,
+                audio: 'https://skyagent-artifacts.tiangong.cn/voice/0053e343-60f2-4ce9-8861-68a0e7d9396f/voice_20250607_234127.mp3'
+            },
+            {
+                id: 'kunninggong',
+                name: '坤宁宫',
+                image: 'https://img.dpm.org.cn/Uploads/Picture/2020/09/24/s5f6bf4dfc4c43.png',
+                description: `坤宁宫是内廷后三宫之一，是明清两代皇后居住的正宫，也是后宫的中心。它始建于明永乐十八年（1420年），不过它的历史颇为多舛，曾在明正德九年（1514年）和万历二十四年（1596年）两次毁于火灾，万历三十三年（1605年）重建。清朝入主后，顺治二年（1645年）进行了重修，十二年（1655年）又仿沈阳盛京清宁宫再次重修。嘉庆二年（1797年）乾清宫失火，火势延烧到坤宁宫前檐，第二年又进行了修缮。
+
+坤宁宫的名称中，"坤"代表地，在中国古代哲学中象征着女性，与乾清宫的"乾"（天、男性）相对应。这体现了中国传统的阴阳观念，也象征着皇后如大地一般孕育生命，辅助皇帝治理后宫。
+
+坤宁宫为黄琉璃瓦重檐庑殿顶，面阔九间，进深五间，建筑面积约1240平方米。殿内陈设富丽堂皇，正中是皇后的宝座，四周摆放着各种珍贵的陈设，如同皇后的"办公室"。
+
+坤宁宫不仅是皇后居住的地方，也是举行皇家婚礼的场所。明清两代，皇帝大婚都在这里举行。新婚之夜，皇帝和皇后会在此饮交杯酒，共度良宵。此外，每逢重大节日，皇后还会在坤宁宫接受妃嫔们的朝贺。
+
+值得一提的是，在坤宁宫的东暖阁内，至今仍保存着明代万历年间的壁画，这是紫禁城现存为数不多的明代原物之一，具有极高的历史和艺术价值。`,
+                audio: 'https://skyagent-artifacts.tiangong.cn/voice/6a0a7fda-41c9-4d75-972b-193355e08e93/voice_20250607_234221.mp3'
+            },
+            {
+                id: 'yuhuayuan',
+                name: '御花园',
+                image: 'https://img.dpm.org.cn/Uploads/Picture/2020/07/03/s5eff02d6c6a8b.jpg',
+                description: `御花园是一处典型的北方皇家园林，位于北京故宫中轴线的最北端，是明清两代皇帝和后妃们休闲游憩的场所。它始建于明永乐十八年（1420年），明代称为"宫后苑"，清代改称"御花园"。园内有亭台楼阁、花木山石，虽然面积不大，约占地12000平方米，但设计精巧，布局紧凑，堪称"袖珍型"皇家园林。
+
+御花园采用中国传统园林的"四合院"构造，以坐北朝南的钦安殿为中心，殿前有广场，东西两侧和北面有回廊环绕，形成一个封闭的空间。园内主要建筑有钦安殿、千秋亭、万春亭、浮碧亭、玉澜轩等，还有假山、花坛、奇石点缀其间。
+
+园内的山石有太湖石、黄石、宣石等，其中最珍贵的是西侧假山上的一块玲珑剔透的太湖石，被称为"玉玲珑"，相传是由明代开国皇帝朱元璋从苏州运来的。园内植物种类繁多，有牡丹、芍药、桃花、梅花等，每到花季，色彩斑斓，香气扑鼻，为皇帝皇后提供了一处赏花游玩的私密空间。
+
+在漫长的历史长河中，这里见证了许多宫廷轶事。明代嘉靖皇帝曾在此炼丹求仙；清代乾隆皇帝则经常在此赏花作诗，他一生写了4万多首诗，不少就是在这里完成的。末代皇帝溥仪退位后，仍居住在紫禁城内，这里的花草树木是他童年难得的玩伴。
+
+御花园虽然面积不大，却浓缩了中国园林艺术的精华，体现了"虽由人作，宛自天开"的造园理念。这里山水相依，建筑与自然和谐统一，是中国古典园林艺术的杰出代表。`,
+                audio: 'https://skyagent-artifacts.tiangong.cn/voice/d55b973d-a79e-4423-83d6-d35ca6e50dd9/voice_20250607_234322.mp3'
+            },
+            {
+                id: 'zhenbao',
+                name: '珍宝馆(宁寿宫区)',
+                image: 'https://r1.visitbeijing.com.cn/vbj-s/2023/1225/69696926269c006bb871eac4b75b1a52.jpg',
+                description: `珍宝馆位于故宫东北角的宁寿宫区内。宁寿宫区是乾隆皇帝为自己归政后的居所而建造的，有"小紫禁城"之称，而如今这里成为展示宫廷珍宝的重要场所。
+
+珍宝馆设在宁寿宫的皇极殿西庑、养性殿、乐寿堂和颐和轩里，是故宫博物院最具魅力的展馆之一。这里收藏了大量明清宫廷珍贵文物，包括金银器、玉器、珠宝、钟表等，令人目不暇接。
+
+珍宝馆需要另外购票参观，每位游客10元。进入展馆后，您将看到故宫博物院收藏的清代宫廷珍宝，这些珠宝大部分是出自紫禁城内掌管营造的机构——造办处奉旨制作的，还有一些则是逢年节庆典时地方官吏的朝贡品。
+
+展馆内最引人注目的当属清代后妃们的凤冠霞帔。这些凤冠通常由金丝制成，镶嵌珍珠、翡翠、红宝石等珠宝，华丽异常。传说乾隆皇帝最宠爱的富察皇后的凤冠上，就镶嵌了3500多颗珍珠和数百颗宝石，重达10公斤左右，可见其奢华程度。
+
+除了服饰类珍宝，这里还收藏了许多精美的工艺品。其中，乾隆年间制作的"玉雕山子"是一大亮点，工匠们将一整块和田玉雕琢成栩栩如生的山水景观，山峦叠嶂，亭台楼阁，甚至还有人物活动其间，精细程度令人叹为观止。
+
+还有一件不得不提的珍品是重5000公斤的大型玉雕"镐多塔"，这是目前世界上最大的玉雕作品之一，采用整块优质白玉精心雕琢而成，工艺精湛，可谓价值连城。
+
+此外，这里还收藏了许多西洋钟表，如英国、法国进贡的自鸣钟、音乐钟等，体现了东西方文化的交流。每到整点，这些钟表会自动演奏音乐或展示机关，十分神奇。`,
+                audio: 'https://skyagent-artifacts.tiangong.cn/voice/5ae17b89-b337-4403-8cf3-b55c58848058/voice_20250607_234432.mp3'
+            }
+        ];
+        
+        // DOM 元素引用
+        const spotsList = document.getElementById('spotsList');
+        const contentArea = document.getElementById('contentArea');
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('overlay');
+        const scrollTop = document.getElementById('scrollTop');
+        
+        // 生成景点列表
+        function generateSpotsList() {
+            spots.forEach(spot => {
+                const listItem = document.createElement('li');
+                listItem.className = `nav-item p-3 cursor-pointer hover:bg-gray-50 transition-all ${spot.id === 'wumen' ? 'active' : ''}`;
+                listItem.setAttribute('data-id', spot.id);
+                listItem.innerHTML = `<span class="block">${spot.name}</span>`;
+                listItem.addEventListener('click', () => {
+                    showSpotContent(spot.id);
+                    // 移动端菜单关闭
+                    if (window.innerWidth <= 768) {
+                        sidebar.classList.remove('active');
+                        overlay.classList.remove('active');
+                    }
+                });
+                spotsList.appendChild(listItem);
+            });
+        }
+        
+        // 显示景点内容
+        function showSpotContent(spotId) {
+            // 更新导航项激活状态
+            document.querySelectorAll('.nav-item').forEach(item => {
+                if (item.getAttribute('data-id') === spotId) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+            
+            // 找到当前景点
+            const currentSpot = spots.find(spot => spot.id === spotId);
+            if (!currentSpot) return;
+            
+            // 生成内容
+            let contentHTML = `
+                <div class="max-w-4xl mx-auto">
+                    <h2 class="text-3xl md:text-4xl font-bold text-primary-color mb-6">${currentSpot.name}</h2>
+                    <div class="mb-8 overflow-hidden rounded-lg spot-image">
+                        <img src="${currentSpot.image}" alt="${currentSpot.name}" class="w-full h-auto object-cover">
+                    </div>
+                    <div class="mb-8 text-lg leading-relaxed prose max-w-none">
+                        ${currentSpot.description.split('\n\n').map(paragraph => `<p>${paragraph}</p>`).join('')}
+                    </div>
+                    <div class="audio-player rounded-lg p-4 mb-8">
+                        <h3 class="text-xl font-semibold mb-3">语音讲解</h3>
+                        <div class="flex items-center gap-4">
+                            <button class="play-pause-btn w-12 h-12 rounded-full text-white flex items-center justify-center focus:outline-none" data-audio-url="${currentSpot.audio}">
+                                <i class="fas fa-play"></i>
+                            </button>
+                            <div class="flex-1">
+                                <div class="progress-bar">
+                                    <div class="progress"></div>
+                                </div>
+                                <div class="flex justify-between mt-2">
+                                    <span class="current-time text-sm">00:00</span>
+                                    <span class="duration text-sm">00:00</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-10 flex justify-between items-center">
+                        ${getPreviousNextButtons(spotId)}
+                    </div>
+                </div>
+            `;
+            
+            contentArea.innerHTML = contentHTML;
+            
+            // 设置音频播放器功能
+            setupAudioPlayer();
+            
+            // 滚动到顶部
+            contentArea.scrollTop = 0;
+        }
+        
+        // 获取上一个和下一个景点按钮
+        function getPreviousNextButtons(currentSpotId) {
+            const currentIndex = spots.findIndex(spot => spot.id === currentSpotId);
+            const prevIndex = currentIndex > 0 ? currentIndex - 1 : null;
+            const nextIndex = currentIndex < spots.length - 1 ? currentIndex + 1 : null;
+            
+            let buttonsHTML = '';
+            
+            if (prevIndex !== null) {
+                buttonsHTML += `
+                    <button class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800 transition flex items-center" data-id="${spots[prevIndex].id}">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        <span class="hidden md:inline">上一个景点：</span> ${spots[prevIndex].name}
+                    </button>
+                `;
+            } else {
+                buttonsHTML += `<div></div>`;
+            }
+            
+            if (nextIndex !== null) {
+                buttonsHTML += `
+                    <button class="px-4 py-2 bg-gray-200 hover:bg-gray-300 rounded text-gray-800 transition flex items-center" data-id="${spots[nextIndex].id}">
+                        <span class="hidden md:inline">下一个景点：</span> ${spots[nextIndex].name}
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                `;
+            } else {
+                buttonsHTML += `<div></div>`;
+            }
+            
+            return buttonsHTML;
+        }
+        
+        // 设置音频播放器功能
+        function setupAudioPlayer() {
+            const playPauseBtn = document.querySelector('.play-pause-btn');
+            const progressBar = document.querySelector('.progress-bar');
+            const progress = document.querySelector('.progress');
+            const currentTimeEl = document.querySelector('.current-time');
+            const durationEl = document.querySelector('.duration');
+            
+            if (!playPauseBtn) return;
+            
+            let audio = new Audio();
+            let isPlaying = false;
+            
+            audio.src = playPauseBtn.getAttribute('data-audio-url');
+            
+            playPauseBtn.addEventListener('click', () => {
+                if (isPlaying) {
+                    audio.pause();
+                    playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                } else {
+                    audio.play();
+                    playPauseBtn.innerHTML = '<i class="fas fa-pause"></i>';
+                    
+                    // 停止其他可能正在播放的音频
+                    stopOtherAudios();
+                }
+                isPlaying = !isPlaying;
+            });
+            
+            // 音频元数据加载完成后设置总时长
+            audio.addEventListener('loadedmetadata', () => {
+                const duration = formatTime(audio.duration);
+                durationEl.textContent = duration;
+            });
+            
+            // 音频播放时更新进度条
+            audio.addEventListener('timeupdate', () => {
+                const percent = (audio.currentTime / audio.duration) * 100;
+                progress.style.width = `${percent}%`;
+                currentTimeEl.textContent = formatTime(audio.currentTime);
+            });
+            
+            // 音频播放结束时重置按钮
+            audio.addEventListener('ended', () => {
+                playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+                isPlaying = false;
+                progress.style.width = '0';
+                currentTimeEl.textContent = '00:00';
+            });
+            
+            // 进度条可点击控制播放位置
+            progressBar.addEventListener('click', (e) => {
+                const rect = progressBar.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                audio.currentTime = percent * audio.duration;
+            });
+            
+            // 函数：格式化时间（秒 -> MM:SS）
+            function formatTime(seconds) {
+                const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+                const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+                return `${mins}:${secs}`;
+            }
+            
+            // 停止其他正在播放的音频
+            function stopOtherAudios() {
+                document.querySelectorAll('audio').forEach(otherAudio => {
+                    if (otherAudio !== audio) {
+                        otherAudio.pause();
+                    }
+                });
+                
+                // 找出当前正在播放的其他音频按钮，并将其重置
+                document.querySelectorAll('.play-pause-btn').forEach(btn => {
+                    if (btn !== playPauseBtn) {
+                        btn.innerHTML = '<i class="fas fa-play"></i>';
+                    }
+                });
+            }
+            
+            return audio;
+        }
+        
+        // 设置上一个/下一个按钮的事件监听
+        contentArea.addEventListener('click', (e) => {
+            const targetBtn = e.target.closest('button[data-id]');
+            if (targetBtn) {
+                const spotId = targetBtn.getAttribute('data-id');
+                showSpotContent(spotId);
+            }
+        });
+        
+        // 移动端菜单按钮事件
+        mobileMenuBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('active');
+            overlay.classList.toggle('active');
+        });
+        
+        // 点击遮罩关闭菜单
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+        });
+        
+        // 返回顶部按钮
+        contentArea.addEventListener('scroll', () => {
+            if (contentArea.scrollTop > 300) {
+                scrollTop.style.opacity = '1';
+            } else {
+                scrollTop.style.opacity = '0';
+            }
+        });
+        
+        scrollTop.addEventListener('click', () => {
+            contentArea.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+        
+        // 初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            generateSpotsList();
+            showSpotContent('wumen'); // 默认显示午门
+        });
+    </script>
+</body>
+</html>
