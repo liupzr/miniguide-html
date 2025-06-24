@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="siteTitle"></title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="config.js"></script>
+    <script src="app.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#8B4513',
+                        secondary: '#D2B48C',
+                        neutral: '#F5F5DC',
+                        dark: '#3A3A3A'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        serif: ['"Noto Serif SC"', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            }
+            .transition-transform-opacity {
+                transition-property: transform, opacity;
+            }
+            .audio-wave {
+                height: 30px;
+                display: flex;
+                align-items: center;
+                gap: 2px;
+            }
+            .audio-wave span {
+                width: 3px;
+                height: 100%;
+                background-color: theme('colors.primary');
+                border-radius: 3px;
+                animation: wave 1s infinite ease-in-out;
+            }
+            @keyframes wave {
+                0%, 100% { transform: scaleY(0.3); }
+                50% { transform: scaleY(1); }
+            }
+            .audio-wave span:nth-child(2) { animation-delay: 0.1s; }
+            .audio-wave span:nth-child(3) { animation-delay: 0.2s; }
+            .audio-wave span:nth-child(4) { animation-delay: 0.3s; }
+            .audio-wave span:nth-child(5) { animation-delay: 0.4s; }
+            /* 隐藏滚动条但保持滚动功能 */
+            .scrollbar-hide {
+                -ms-overflow-style: none;  /* IE and Edge */
+                scrollbar-width: none;  /* Firefox */
+            }
+            .scrollbar-hide::-webkit-scrollbar {
+                display: none;  /* Chrome, Safari and Opera */
+            }
+        }
+    </style>
+</head>
+<body class="bg-neutral min-h-screen">
+    <!-- 顶部导航栏 -->
+    <header class="sticky top-0 z-50 bg-primary/90 text-white shadow-lg transition-all duration-300">
+        <div class="container mx-auto px-4 py-3 flex justify-between items-center">
+            <div class="flex items-center space-x-2">
+                <i class="fa fa-university text-2xl"></i>
+                <h1 id="headerTitle" class="text-xl md:text-2xl font-bold"></h1>
+            </div>
+            <button id="menuToggle" class="md:hidden text-white text-xl">
+                <i class="fa fa-bars"></i>
+            </button>
+            <nav class="hidden md:flex items-center space-x-6">
+                <a href="#overview" class="hover:text-secondary transition-colors">概览</a>
+                <a href="#attractions" class="hover:text-secondary transition-colors">景点</a>
+            </nav>
+        </div>
+        <!-- 移动端菜单 -->
+        <div id="mobileMenu" class="md:hidden hidden bg-primary/95">
+            <div class="container mx-auto px-4 py-3 flex flex-col space-y-4">
+                <a href="#overview" class="py-2 border-b border-white/20 hover:text-secondary transition-colors">概览</a>
+                <a href="#attractions" class="py-2 border-b border-white/20 hover:text-secondary transition-colors">景点</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- 英雄区域 -->
+    <section class="relative h-[50vh] md:h-[70vh] min-h-[300px] md:min-h-[500px] overflow-hidden">
+        <div class="absolute inset-0 bg-black/40 z-10"></div>
+        <div id="heroImage" class="absolute inset-0 bg-cover bg-center" style="filter: brightness(0.8);"></div>
+        <div class="relative z-20 container mx-auto px-4 h-full flex flex-col justify-center items-center text-center text-white">
+            <h1 id="heroTitle" class="text-[clamp(2.5rem,6vw,4rem)] font-bold mb-4 text-shadow animate-fade-in"></h1>
+            <p id="heroDescription" class="text-[clamp(1rem,3vw,1.5rem)] max-w-2xl mx-auto mb-8 text-shadow"></p>
+            <a href="#attractions" class="bg-primary hover:bg-primary/80 text-white font-bold py-3 px-8 rounded-full transition-all transform hover:scale-105 shadow-lg">
+                开始导览 <i class="fa fa-arrow-down ml-2"></i>
+            </a>
+        </div>
+        <div class="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-neutral to-transparent z-20"></div>
+    </section>
+
+    <!-- 概览部分 -->
+    <section id="overview" class="py-8 md:py-12 bg-neutral">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-6 md:mb-8">
+                <h2 id="overviewTitle" class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-primary mb-2 md:mb-3"></h2>
+                <div class="w-24 h-1 bg-secondary mx-auto mb-4 md:mb-6"></div>
+                <p id="overviewDescription" class="max-w-3xl mx-auto text-dark/80 mb-4 md:mb-6"></p>
+                
+                <!-- 音频播放器 -->
+                <div class="audio-player bg-white p-3 md:p-5 rounded-xl shadow-lg max-w-xl mx-auto">
+                    <div class="flex items-center justify-between mb-2 md:mb-3">
+                        <h4 class="font-bold text-primary text-sm md:text-base">概览讲解</h4>
+                    </div>
+                    <div class="flex items-center space-x-3 md:space-x-4 mb-3 md:mb-4">
+                        <button class="play-pause-btn bg-primary text-white w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shadow-md hover:shadow-lg transition-all">
+                            <i class="fa fa-play"></i>
+                        </button>
+                        <div class="flex-1">
+                            <div class="relative h-1.5 md:h-2 bg-gray-200 rounded-full overflow-hidden">
+                                <div class="progress-bar absolute top-0 left-0 h-full bg-primary" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs md:text-sm text-dark/60 time-display">0:00</span>
+                        <span class="text-xs md:text-sm text-dark/30 duration">/ 0:00</span>
+                    </div>
+                    <div class="audio-wave hidden">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div id="overviewCards" class="flex overflow-x-auto pb-2 md:pb-4 scrollbar-hide snap-x snap-mandatory space-x-3 md:space-x-6 md:grid md:grid-cols-3 md:gap-6">
+                <!-- 卡片将通过 JavaScript 动态生成 -->
+            </div>
+        </div>
+    </section>
+
+    <!-- 景点部分 -->
+    <section id="attractions" class="py-6 md:py-16 bg-white">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-2 md:mb-12">
+                <h2 class="text-[clamp(1.8rem,4vw,2.5rem)] font-bold text-primary mb-2 md:mb-4">精选景点</h2>
+                <div class="w-24 h-1 bg-secondary mx-auto mb-2 md:mb-8"></div>
+            </div>
+
+            <!-- 景点导航 -->
+            <div class="mb-2 md:mb-12">
+                <div id="attractionTabs" class="flex overflow-x-auto pb-2 md:pb-4 scrollbar-hide snap-x snap-mandatory space-x-4">
+                    <!-- 景点标签将通过 JavaScript 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 景点内容 -->
+            <div id="attractionContent" class="attraction-content bg-neutral rounded-2xl shadow-xl overflow-hidden">
+                <!-- 景点内容将通过 JavaScript 动态生成 -->
+            </div>
+        </div>
+    </section>
+
+    <!-- 音频播放器组件 -->
+    <div id="floating-audio" class="fixed bottom-6 right-6 bg-primary text-white rounded-full w-16 h-16 flex items-center justify-center shadow-2xl cursor-pointer z-50 hover:bg-primary/90 transition-all group">
+        <i class="fa fa-headphones text-2xl"></i>
+        <div class="absolute right-full mr-4 bg-white text-dark rounded-lg shadow-xl p-4 w-64 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300">
+            <h4 class="font-bold text-primary mb-2">正在播放</h4>
+            <p id="currentPlayingTitle" class="text-sm text-dark/70 mb-3"></p>
+            <div class="flex items-center space-x-3">
+                <button class="play-pause-btn bg-primary text-white w-8 h-8 rounded-full flex items-center justify-center shadow-md">
+                    <i class="fa fa-pause"></i>
+                </button>
+                <div class="flex-1">
+                    <div class="relative h-1 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="absolute top-0 left-0 h-full bg-primary" style="width: 45%"></div>
+                    </div>
+                </div>
+                <span class="text-xs text-dark/60">0:00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 音频文件 -->
+    <div id="audioElements">
+        <!-- 音频元素将通过 JavaScript 动态生成 -->
+    </div>
+</body>
+</html>
+    
